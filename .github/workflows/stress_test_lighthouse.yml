@@ -9,7 +9,7 @@ on:
         required: true
         default: '5'
         type: choice
-        options: ['1', '5', '10', '20']
+        options: ['1', '5', '10']
       test_suite:
         description: 'Name of lighthouse suite to run.'
         required: true
@@ -47,21 +47,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Setup Environment
       - name: Merge develop and set up dependencies
         uses: ./.github/actions/merge-develop-and-set-up-dependencies
 
-      # 2. Build the App Locally (No downloading artifacts)
-      - name: Generate build files
-        uses: ./.github/actions/generate-build-files
+      # CHANGED: Build locally to avoid artifact conflicts
+      - name: Build App (Local)
+        run: |
+          # We run the build script directly instead of using the action
+          # This prevents it from trying to upload artifacts to GitHub
+          python -m scripts.build --mode=dev
 
-      # 3. Run the Test
       - name: Run Lighthouse Performance Test
         run: |
           echo "Starting Run #${{ matrix.run }}..."
           python -m scripts.run_performance_tests --suite="${{ inputs.test_suite }}"
 
-      # 4. Upload Report if it Fails
       - name: Upload Lighthouse Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
