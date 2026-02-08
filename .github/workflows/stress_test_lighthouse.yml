@@ -1,6 +1,3 @@
-# This workflow is used to run the Lighthouse performance tests multiple times.
-# It is used to reproduce flakes like "uses-responsive-images".
-
 name: Stress Test (Lighthouse)
 
 permissions: read-all
@@ -8,16 +5,11 @@ on:
   workflow_dispatch:
     inputs:
       num_runs:
-        description: 'Number of times to run the test (Max: 50).'
+        description: 'Number of times to run the test.'
         required: true
         default: '10'
         type: choice
-        options:
-          - '1'
-          - '5'
-          - '10'
-          - '20'
-          - '50'
+        options: ['1', '5', '10', '20']
       test_suite:
         description: 'Name of lighthouse suite to run.'
         required: true
@@ -40,18 +32,29 @@ jobs:
         id: set-matrix
         shell: bash
         run: |
-          # specific jq command to create a json array of numbers [1, 2, ... N]
           MATRIX=$(seq 1 "$NUM_RUNS" | jq -R . | jq -s -c .)
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
+  # We MUST have this Build job first
+  build:
+    name: Build app and store artifacts
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Merge develop and set up dependencies
+        uses: ./.github/actions/merge-develop-and-set-up-dependencies
+      - name: Generate build files
+        uses: ./.github/actions/generate-build-files
+
   run_lighthouse_stress_test:
-    needs: [generate-matrix]
+    needs: [generate-matrix, build]  # Wait for Build to finish!
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         run: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
-    name: "Run ${{ matrix.run }}: ${{ inputs.test_suite }}"
+    name: "Run ${{ matrix.run }}"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -64,7 +67,7 @@ jobs:
 
       - name: Run Lighthouse Performance Test
         run: |
-          echo "Starting Run #${{ matrix.run }} for suite: ${{ inputs.test_suite }}"
+          echo "Starting Run #${{ matrix.run }}..."
           python -m scripts.run_performance_tests --suite="${{ inputs.test_suite }}"
 
       - name: Upload Lighthouse Report on Failure
