@@ -7,7 +7,7 @@ on:
       num_runs:
         description: 'Number of times to run the test.'
         required: true
-        default: '10'
+        default: '5'
         type: choice
         options: ['1', '5', '10', '20']
       test_suite:
@@ -35,20 +35,8 @@ jobs:
           MATRIX=$(seq 1 "$NUM_RUNS" | jq -R . | jq -s -c .)
           echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
 
-  # We MUST have this Build job first
-  build:
-    name: Build app and store artifacts
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Merge develop and set up dependencies
-        uses: ./.github/actions/merge-develop-and-set-up-dependencies
-      - name: Generate build files
-        uses: ./.github/actions/generate-build-files
-
   run_lighthouse_stress_test:
-    needs: [generate-matrix, build]  # Wait for Build to finish!
+    needs: [generate-matrix]
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -59,17 +47,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 1. Setup Environment
       - name: Merge develop and set up dependencies
         uses: ./.github/actions/merge-develop-and-set-up-dependencies
 
+      # 2. Build the App Locally (No downloading artifacts)
       - name: Generate build files
         uses: ./.github/actions/generate-build-files
 
+      # 3. Run the Test
       - name: Run Lighthouse Performance Test
         run: |
           echo "Starting Run #${{ matrix.run }}..."
           python -m scripts.run_performance_tests --suite="${{ inputs.test_suite }}"
 
+      # 4. Upload Report if it Fails
       - name: Upload Lighthouse Report on Failure
         if: failure()
         uses: actions/upload-artifact@v4
