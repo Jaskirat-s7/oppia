@@ -50,17 +50,16 @@ jobs:
       - name: Merge develop and set up dependencies
         uses: ./.github/actions/merge-develop-and-set-up-dependencies
 
-      # CRITICAL FIX: Install dependencies manually so we don't need 'generate-build-files'
+      # This works! (Took 51s in your screenshot)
       - name: Install Third Party Libs
         run: python -m scripts.install_third_party_libs
 
-      - name: Install Chrome
-        run: python -m scripts.install_chrome_for_ci
+      # REMOVED: "Install Chrome" (Since the script doesn't exist and Runner has Chrome)
 
       - name: Run Lighthouse Performance Test
         run: |
           echo "Starting Run #${{ matrix.run }}..."
-          # This script will automatically build the app if needed
+          # This script handles the rest (building + server start)
           python -m scripts.run_performance_tests --suite="${{ inputs.test_suite }}"
 
       - name: Upload Lighthouse Report on Failure
