@@ -50,16 +50,17 @@ jobs:
       - name: Merge develop and set up dependencies
         uses: ./.github/actions/merge-develop-and-set-up-dependencies
 
-      # CHANGED: Build locally to avoid artifact conflicts
-      - name: Build App (Local)
-        run: |
-          # We run the build script directly instead of using the action
-          # This prevents it from trying to upload artifacts to GitHub
-          python -m scripts.build --mode=dev
+      # CRITICAL FIX: Install dependencies manually so we don't need 'generate-build-files'
+      - name: Install Third Party Libs
+        run: python -m scripts.install_third_party_libs
+
+      - name: Install Chrome
+        run: python -m scripts.install_chrome_for_ci
 
       - name: Run Lighthouse Performance Test
         run: |
           echo "Starting Run #${{ matrix.run }}..."
+          # This script will automatically build the app if needed
           python -m scripts.run_performance_tests --suite="${{ inputs.test_suite }}"
 
       - name: Upload Lighthouse Report on Failure
