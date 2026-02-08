@@ -1,0 +1,35 @@
+name: Test Workflow (Diagnostic)
+
+# This is a minimal test to see if workflows can run at all
+# If this works, the problem is with the main workflow
+# If this doesn't work, there's a repo-level issue
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnostic:
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Print diagnostic info
+        run: |
+          echo "==================================="
+          echo "Workflow is running successfully!"
+          echo "==================================="
+          echo "Runner OS: ${{ runner.os }}"
+          echo "GitHub Actor: ${{ github.actor }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "==================================="
+          
+      - name: Check if this is a fork
+        run: |
+          if [ "${{ github.repository_owner }}" != "oppia" ]; then
+            echo "✅ This is a fork (owner: ${{ github.repository_owner }})"
+          else
+            echo "⚠️ This is the main oppia repo"
+          fi
+      
+      - name: Success
+        run: echo "If you see this, workflows ARE working in your fork!"
