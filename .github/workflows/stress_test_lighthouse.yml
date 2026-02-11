@@ -1,230 +1,106 @@
-name: Stress Test - Lighthouse Performance (uses-responsive-images)
+name: Lighthouse Stress Test (Donate Page)
 
-on:
-  workflow_dispatch:
-    inputs:
-      run_count:
-        description: 'Number of parallel test runs'
-        required: true
-        default: '10'
-        type: choice
-        options:
-          - '5'
-          - '10'
-          - '15'
-          - '20'
+on: [workflow_dispatch]
 
 jobs:
-  stress-test:
+  stress_test:
     runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # We list all possible run numbers up to the maximum (20)
-        run_number: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-    
-    # Only run this job if the matrix number is less than or equal to the user's selected count
-    if: ${{ matrix.run_number <= fromJSON(github.event.inputs.run_count) }}
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
+      - uses: actions/checkout@v3
+
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-      
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+
+      - name: Set up Node.js 16
+        uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
-      
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-      
-      - name: Cache node modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json', 'yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      
-      # Manually install Chrome dependencies to prevent "Browser not found" errors
+          node-version: '16'
+
       - name: Install Chrome System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            wget \
-            gnupg \
-            ca-certificates \
-            fonts-liberation \
-            libappindicator3-1 \
-            libasound2 \
-            libatk-bridge2.0-0 \
-            libatk1.0-0 \
-            libcups2 \
-            libdbus-1-3 \
-            libdrm2 \
-            libgbm1 \
-            libgtk-3-0 \
-            libnspr4 \
-            libnss3 \
-            libx11-xcb1 \
-            libxcomposite1 \
-            libxdamage1 \
-            libxrandr2 \
-            xdg-utils
-      
-      - name: Install Python dependencies
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Install Python Dependencies
         run: |
-          python -m pip install --upgrade pip setuptools wheel
+          pip install -r requirements.txt
+          pip install -r requirements_dev.txt
           pip install pyyaml
-      
-      - name: Install third-party dependencies
-        run: |
-          python -m scripts.install_third_party_libs
-        continue-on-error: false
-      
-      - name: Build Oppia
-        run: |
-          python -m scripts.build --prod_env
-        timeout-minutes: 30
+
+      - name: Install Third Party Libs
+        run: python -m scripts.install_third_party_libs
+
+      - name: Build Oppia (Prod Env)
+        run: python -m scripts.build --prod_env
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
-      
-      - name: Run Performance Test (uses-responsive-images)
-        id: lighthouse_test
-        run: |
-          mkdir -p lighthouse-reports/run-${{ matrix.run_number }}
-          
-          python -m scripts.run_performance_tests \
-            --suite="uses-responsive-images" \
-            2>&1 | tee lighthouse-reports/run-${{ matrix.run_number }}/test-output.log
-        continue-on-error: true
-        timeout-minutes: 15
-      
-      - name: Check test result and capture score
-        id: check_result
-        run: |
-          # Parse the log to find the uses-responsive-images score
-          SCORE=$(grep -oP 'uses-responsive-images.*?:\s*\K[0-9.]+' lighthouse-reports/run-${{ matrix.run_number }}/test-output.log | head -1 || echo "N/A")
-          echo "score=$SCORE" >> $GITHUB_OUTPUT
-          
-          # Check if test failed
-          if grep -q "FAILED\|AssertionError\|Error:" lighthouse-reports/run-${{ matrix.run_number }}/test-output.log; then
-            echo "result=FAILED" >> $GITHUB_OUTPUT
-            echo "✗ Run ${{ matrix.run_number }}: FAILED (Score: $SCORE)" >> lighthouse-reports/run-${{ matrix.run_number }}/summary.txt
-          else
-            echo "result=PASSED" >> $GITHUB_OUTPUT
-            echo "✓ Run ${{ matrix.run_number }}: PASSED (Score: $SCORE)" >> lighthouse-reports/run-${{ matrix.run_number }}/summary.txt
-          fi
-        continue-on-error: true
-      
-      - name: Copy Lighthouse HTML Reports
-        if: always()
-        run: |
-          # Find and copy any generated Lighthouse HTML reports
-          if [ -d "../lighthouse_reports" ]; then
-            cp -r ../lighthouse_reports/* lighthouse-reports/run-${{ matrix.run_number }}/ || true
-          fi
-          
-          if [ -d ".lighthouseci" ]; then
-            cp -r .lighthouseci/* lighthouse-reports/run-${{ matrix.run_number }}/ || true
-          fi
-          
-          # Create metadata file
-          cat > lighthouse-reports/run-${{ matrix.run_number }}/metadata.txt <<EOF
-          Run Number: ${{ matrix.run_number }}
-          Test Result: ${{ steps.check_result.outputs.result }}
-          Score: ${{ steps.check_result.outputs.score }}
-          Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-          Commit: ${{ github.sha }}
-          EOF
-        continue-on-error: true
-      
-      - name: Upload Lighthouse Reports (All Runs)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lighthouse-report-run-${{ matrix.run_number }}
-          path: lighthouse-reports/run-${{ matrix.run_number }}/
-          retention-days: 7
-          if-no-files-found: warn
-      
-      - name: Upload Lighthouse Reports (Failures Only)
-        if: steps.check_result.outputs.result == 'FAILED'
-        uses: actions/upload-artifact@v4
-        with:
-          name: FAILED-lighthouse-report-run-${{ matrix.run_number }}
-          path: lighthouse-reports/run-${{ matrix.run_number }}/
-          retention-days: 14
-          if-no-files-found: warn
 
-  summary:
-    needs: stress-test
-    runs-on: ubuntu-22.04
-    if: always()
-    
-    steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: all-reports
-      
-      - name: Generate Summary Report
+      - name: Start Oppia Server
         run: |
-          echo "# Lighthouse Stress Test Results" > $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Total Runs:** ${{ github.event.inputs.run_count }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Test Suite:** uses-responsive-images" >> $GITHUB_STEP_SUMMARY
-          echo "**Current Threshold:** 0.8" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          # Start the server in the background
+          # We use scripts.start but we need to make sure it doesn't block. 
+          # Actually, scripts.start starts the dev server. run_lighthouse_tests uses managed_dev_appserver.
+          # Let's use the simplest way: python -m scripts.start
+          # But scripts.start is interactive/blocking.
+          # A better way is to use the same logic as run_lighthouse_tests but detached.
+          # For simplicity in this stress test, let's try starting it in background.
           
-          PASSED=0
-          FAILED=0
-          SCORES=""
+          python -m scripts.start --no_browser &
+          PID=$!
+          echo "Server PID: $PID"
           
-          for dir in all-reports/lighthouse-report-run-*/; do
-            if [ -f "$dir/summary.txt" ]; then
-              CONTENT=$(cat "$dir/summary.txt")
-              echo "- $CONTENT" >> $GITHUB_STEP_SUMMARY
-              
-              if echo "$CONTENT" | grep -q "FAILED"; then
-                FAILED=$((FAILED + 1))
-              else
-                PASSED=$((PASSED + 1))
-              fi
-              
-              SCORE=$(echo "$CONTENT" | grep -oP 'Score:\s*\K[0-9.]+' || echo "")
-              if [ ! -z "$SCORE" ]; then
-                SCORES="$SCORES $SCORE"
-              fi
+          # Wait for port 8181 to be listening
+          echo "Waiting for server to start on port 8181..."
+          for i in {1..30}; do
+            if nc -z localhost 8181; then
+              echo "Server is up!"
+              break
             fi
+            echo "Waiting... ($i/30)"
+            sleep 10
+          done
+
+      - name: Install Lighthouse CLI
+        run: npm install -g lighthouse
+
+      - name: Run Lighthouse Stress Test Loop
+        run: |
+          mkdir -p lighthouse_results
+          echo "Run,Score,WastedBytes" > lighthouse_results/summary.csv
+          
+          # Loop 20 times (or more)
+          for i in {1..20}; do
+            echo "----------------------------------------------------------------"
+            echo "Starting Run $i/20"
+            
+            # Run Lighthouse
+            # We use --chrome-flags to ensure it runs in CI environment
+            npx lighthouse http://localhost:8181/donate \
+              --only-audits=uses-responsive-images \
+              --chrome-flags="--headless --no-sandbox --disable-gpu" \
+              --output=json \
+              --output-path=lighthouse_results/run_$i.json \
+              --quiet
+            
+            # Parse results
+            SCORE=$(python3 -c "import json; print(json.load(open('lighthouse_results/run_$i.json'))['audits']['uses-responsive-images']['score'])")
+            WASTED=$(python3 -c "import json; items=json.load(open('lighthouse_results/run_$i.json'))['audits']['uses-responsive-images'].get('details',{}).get('items',[]); print(sum(i.get('wastedBytes',0) for i in items))")
+            
+            echo "$i,$SCORE,$WASTED" >> lighthouse_results/summary.csv
+            echo "Result: Score=$SCORE, Wasted=${WASTED} bytes"
+            
+            # Sleep a bit to allow server to "breathe" if needed, or to simulate random timing
+            sleep 2
           done
           
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## Summary Statistics" >> $GITHUB_STEP_SUMMARY
-          echo "- ✓ **Passed:** $PASSED" >> $GITHUB_STEP_SUMMARY
-          echo "- ✗ **Failed:** $FAILED" >> $GITHUB_STEP_SUMMARY
-          
-          TOTAL=${{ github.event.inputs.run_count }}
-          if [ $TOTAL -gt 0 ]; then
-            FAILURE_RATE=$(awk "BEGIN {printf \"%.1f%%\", ($FAILED / $TOTAL) * 100}")
-            echo "- **Failure Rate:** $FAILURE_RATE" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          if [ ! -z "$SCORES" ]; then
-            MIN=$(echo $SCORES | tr ' ' '\n' | sort -n | head -1)
-            MAX=$(echo $SCORES | tr ' ' '\n' | sort -n | tail -1)
-            AVG=$(echo $SCORES | tr ' ' '\n' | awk '{sum+=$1; count++} END {if(count>0) printf "%.3f", sum/count; else print "N/A"}')
-            
-            echo "" >> $GITHUB_STEP_
+          echo "----------------------------------------------------------------"
+          echo "Final Summary:"
+          cat lighthouse_results/summary.csv
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: lighthouse-stress-test-results
+          path: lighthouse_results/
