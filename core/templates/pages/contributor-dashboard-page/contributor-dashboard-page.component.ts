@@ -16,21 +16,22 @@
  * @fileoverview Component for the contributor dashboard page.
  */
 
-import {AppConstants} from 'app.constants';
-import {Component, OnInit} from '@angular/core';
-import {UrlInterpolationService} from 'domain/utilities/url-interpolation.service';
-import {LanguageUtilService} from 'domain/utilities/language-util.service';
+import { AppConstants } from 'app.constants';
+import { Component, OnInit } from '@angular/core';
+import { UrlInterpolationService } from 'domain/utilities/url-interpolation.service';
+import { LanguageUtilService } from 'domain/utilities/language-util.service';
 import {
   ContributorDashboardConstants,
   ContributorDashboardTabsDetails,
 } from 'pages/contributor-dashboard-page/contributor-dashboard-page.constants';
-import {ContributionAndReviewService} from './services/contribution-and-review.service';
-import {ContributionOpportunitiesService} from './services/contribution-opportunities.service';
-import {FocusManagerService} from 'services/stateful/focus-manager.service';
-import {LocalStorageService} from 'services/local-storage.service';
-import {TranslationLanguageService} from 'pages/exploration-editor-page/translation-tab/services/translation-language.service';
-import {TranslationTopicService} from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
-import {UserService} from 'services/user.service';
+import { ContributionAndReviewService } from './services/contribution-and-review.service';
+import { TopicBackendDict } from './services/contribution-opportunities-backend-api.service';
+import { ContributionOpportunitiesService } from './services/contribution-opportunities.service';
+import { FocusManagerService } from 'services/stateful/focus-manager.service';
+import { LocalStorageService } from 'services/local-storage.service';
+import { TranslationLanguageService } from 'pages/exploration-editor-page/translation-tab/services/translation-language.service';
+import { TranslationTopicService } from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
+import { UserService } from 'services/user.service';
 
 @Component({
   selector: 'contributor-dashboard-page',
@@ -68,7 +69,7 @@ export class ContributorDashboardPageComponent implements OnInit {
     private translationTopicService: TranslationTopicService,
     private urlInterpolationService: UrlInterpolationService,
     private userService: UserService
-  ) {}
+  ) { }
 
   onTabClick(activeTabName: string): void {
     this.activeTabName = activeTabName;
@@ -98,14 +99,14 @@ export class ContributorDashboardPageComponent implements OnInit {
   showLanguageSelector(): boolean {
     const activeTabDetail =
       this.tabsDetails[
-        this.activeTabName as keyof ContributorDashboardTabsDetails
+      this.activeTabName as keyof ContributorDashboardTabsDetails
       ];
     return activeTabDetail.customizationOptions.includes('language');
   }
 
-  onChangeTopic(topicName: string): void {
-    this.topicName = topicName;
-    this.translationTopicService.setActiveTopicName(this.topicName);
+  onChangeTopic(topic: TopicBackendDict): void {
+    this.topicName = topic.name;
+    this.translationTopicService.setActiveTopic(topic);
     this.localStorageService.updateLastSelectedTranslationTopicName(
       this.topicName
     );
@@ -114,7 +115,7 @@ export class ContributorDashboardPageComponent implements OnInit {
   showTopicSelector(): boolean {
     const activeTabDetail =
       this.tabsDetails[
-        this.activeTabName as keyof ContributorDashboardTabsDetails
+      this.activeTabName as keyof ContributorDashboardTabsDetails
       ];
     const activeSuggestionType =
       this.contributionAndReviewService.getActiveSuggestionType();
@@ -212,22 +213,24 @@ export class ContributorDashboardPageComponent implements OnInit {
 
     this.contributionOpportunitiesService
       .getTranslatableTopicNamesAsync()
-      .then(topicNames => {
+      .then(topics => {
         // TODO(#15710): Set default active topic to 'All'.
-        if (topicNames.length <= 0) {
-          this.translationTopicService.setActiveTopicName(
-            ContributorDashboardConstants.DEFAULT_OPPORTUNITY_TOPIC_NAME
-          );
+        if (topics.length <= 0) {
+          this.translationTopicService.setActiveTopic({
+            id: ContributorDashboardConstants.DEFAULT_OPPORTUNITY_TOPIC_NAME,
+            name: ContributorDashboardConstants.DEFAULT_OPPORTUNITY_TOPIC_NAME
+          });
           return;
         }
-        this.topicName = topicNames[0];
+        let selectedTopic = topics[0];
         if (
           prevSelectedTopicName &&
-          topicNames.indexOf(prevSelectedTopicName) !== -1
+          topics.some(t => t.name === prevSelectedTopicName)
         ) {
-          this.topicName = prevSelectedTopicName;
+          selectedTopic = topics.find(t => t.name === prevSelectedTopicName)!;
         }
-        this.translationTopicService.setActiveTopicName(this.topicName);
+        this.topicName = selectedTopic.name;
+        this.translationTopicService.setActiveTopic(selectedTopic);
       });
 
     this.activeTabName = 'myContributionTab';

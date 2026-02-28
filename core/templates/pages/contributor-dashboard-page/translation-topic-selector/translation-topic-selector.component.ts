@@ -27,9 +27,10 @@ import {
   ElementRef,
 } from '@angular/core';
 
-import {AppConstants} from 'app.constants';
+import { AppConstants } from 'app.constants';
 import {
   ContributionOpportunitiesBackendApiService,
+  TopicBackendDict
   // eslint-disable-next-line max-len
 } from 'pages/contributor-dashboard-page/services/contribution-opportunities-backend-api.service';
 
@@ -42,37 +43,39 @@ export class TranslationTopicSelectorComponent implements OnInit {
   // and we need to do non-null assertion. For more information, see
   // https://github.com/oppia/oppia/wiki/Guide-on-defining-types#ts-7-1
   @Input() activeTopicName!: string;
-  @Output() setActiveTopicName: EventEmitter<string> = new EventEmitter();
-  @ViewChild('dropdown', {static: false}) dropdownRef!: ElementRef;
+  @Output() setActiveTopic: EventEmitter<TopicBackendDict> = new EventEmitter();
+  @ViewChild('dropdown', { static: false }) dropdownRef!: ElementRef;
 
-  options!: string[];
   dropdownShown = false;
-  topicsPerClassroomMap: Record<string, string[]> = {};
+  topicsPerClassroomMap: Record<string, TopicBackendDict[]> = {};
 
   constructor(
     private contributionOpportunitiesBackendApiService: ContributionOpportunitiesBackendApiService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.contributionOpportunitiesBackendApiService
       .fetchTranslatableTopicNamesPerClassroomAsync()
       .then(topicsPerClassroom => {
-        topicsPerClassroom.forEach(({classroom, topics}) => {
+        topicsPerClassroom.forEach(({ classroom, topics }) => {
           this.topicsPerClassroomMap[classroom] = topics;
         });
       });
 
     // Set initial value for activeTopicName to "ALL".
     this.activeTopicName = AppConstants.TOPIC_SENTINEL_NAME_ALL;
-    this.setActiveTopicName.emit(this.activeTopicName);
+    this.setActiveTopic.emit({
+      id: AppConstants.TOPIC_SENTINEL_NAME_ALL,
+      name: AppConstants.TOPIC_SENTINEL_NAME_ALL
+    });
   }
 
   toggleDropdown(): void {
     this.dropdownShown = !this.dropdownShown;
   }
 
-  selectOption(activeTopicName: string): void {
-    this.setActiveTopicName.emit(activeTopicName);
+  selectOption(topic: TopicBackendDict): void {
+    this.setActiveTopic.emit(topic);
     this.dropdownShown = false;
   }
 

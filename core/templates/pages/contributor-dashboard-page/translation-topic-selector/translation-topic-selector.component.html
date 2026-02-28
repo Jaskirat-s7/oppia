@@ -19,8 +19,8 @@
              (click)="selectOption(option)"
              (keydown.enter)="selectOption(option)"
              tabindex="0"
-             [ngClass]="{'oppia-translation-topic-selector-dropdown-option-selected' : option === activeTopicName}">
-          {{option}}
+             [ngClass]="{'oppia-translation-topic-selector-dropdown-option-selected' : option.name === activeTopicName}">
+          {{option.name}}
         </div>
       </ng-container>
 
@@ -30,8 +30,8 @@
              (click)="selectOption(option)"
              (keydown.enter)="selectOption(option)"
              tabindex="0"
-             [ngClass]="{'oppia-translation-topic-selector-dropdown-option-selected' : option === activeTopicName}">
-          {{option}}
+             [ngClass]="{'oppia-translation-topic-selector-dropdown-option-selected' : option.name === activeTopicName}">
+          {{option.name}}
         </div>
       </ng-template>
     </ng-container>

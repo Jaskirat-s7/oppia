@@ -73,13 +73,18 @@ interface FeaturedTranslationLanguagesBackendDict {
   featured_translation_languages: FeaturedTranslationLanguageBackendDict[];
 }
 
+export interface TopicBackendDict {
+  id: string;
+  name: string;
+}
+
 interface TopicNamesBackendDict {
-  topic_names: string[];
+  topic_names: TopicBackendDict[];
 }
 
 interface TopicNamesPerClassroomDict {
   classroom: string;
-  topics: string[];
+  topics: TopicBackendDict[];
 }
 
 interface TopicNamesPerClassroomBackendDict {
@@ -162,13 +167,13 @@ export class ContributionOpportunitiesBackendApiService {
 
   async fetchTranslationOpportunitiesAsync(
     languageCode: string,
-    topicName: string,
+    topicId: string,
     cursor: string
   ): Promise<TranslationContributionOpportunities> {
     const params = {
       language_code: languageCode,
-      topic_name:
-        topicName === AppConstants.TOPIC_SENTINEL_NAME_ALL ? '' : topicName,
+      topic_id:
+        topicId === AppConstants.TOPIC_SENTINEL_NAME_ALL ? '' : topicId,
       cursor: cursor,
     };
 
@@ -254,13 +259,19 @@ export class ContributionOpportunitiesBackendApiService {
     }
   }
 
-  async fetchTranslatableTopicNamesAsync(): Promise<string[]> {
+  async fetchTranslatableTopicNamesAsync(): Promise<TopicBackendDict[]> {
     try {
       const response = await this.http
         .get<TopicNamesBackendDict>('/gettranslatabletopicnames')
         .toPromise();
 
-      return [AppConstants.TOPIC_SENTINEL_NAME_ALL, ...response.topic_names];
+      return [
+        {
+          id: AppConstants.TOPIC_SENTINEL_NAME_ALL,
+          name: AppConstants.TOPIC_SENTINEL_NAME_ALL
+        }, 
+        ...response.topic_names
+      ];
     } catch {
       return [];
     }
@@ -281,7 +292,13 @@ export class ContributionOpportunitiesBackendApiService {
           classroom,
           topics:
             classroom === ''
-              ? [AppConstants.TOPIC_SENTINEL_NAME_ALL, ...topics]
+              ? [
+                  {
+                    id: AppConstants.TOPIC_SENTINEL_NAME_ALL,
+                    name: AppConstants.TOPIC_SENTINEL_NAME_ALL
+                  }, 
+                  ...topics
+                ]
               : topics,
         })
       );

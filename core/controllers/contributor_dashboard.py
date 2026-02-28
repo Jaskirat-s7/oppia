@@ -80,7 +80,7 @@ class ContributionOpportunitiesHandlerNormalizedRequestDict(TypedDict):
 
     cursor: Optional[str]
     language_code: Optional[str]
-    topic_name: Optional[str]
+    topic_id: Optional[str]
 
 
 class ContributionOpportunitiesHandler(
@@ -104,7 +104,7 @@ class ContributionOpportunitiesHandler(
                 },
                 'default_value': None,
             },
-            'topic_name': {
+            'topic_id': {
                 'schema': {'type': 'basestring'},
                 'default_value': None,
             },
@@ -137,12 +137,12 @@ class ContributionOpportunitiesHandler(
             )
 
         elif opportunity_type == constants.OPPORTUNITY_TYPE_TRANSLATION:
-            topic_name = self.normalized_request.get('topic_name')
+            topic_id = self.normalized_request.get('topic_id')
             if language_code is None:
                 raise self.InvalidInputException
             translation_opportunities, next_cursor, more = (
                 self._get_translation_opportunity_dicts(
-                    language_code, topic_name, search_cursor
+                    language_code, topic_id, search_cursor
                 )
             )
         else:
@@ -242,7 +242,7 @@ class ContributionOpportunitiesHandler(
     def _get_translation_opportunity_dicts(
         self,
         language_code: str,
-        topic_name: Optional[str],
+        topic_id: Optional[str],
         search_cursor: Optional[str],
     ) -> Tuple[
         List[opportunity_domain.PartialExplorationOpportunitySummaryDict],
@@ -254,8 +254,8 @@ class ContributionOpportunitiesHandler(
         Args:
             language_code: str. The language for which translation opportunities
                 should be fetched.
-            topic_name: str or None. The topic for which translation
-                opportunities should be fetched. If topic_name is None or empty,
+            topic_id: str or None. The topic ID for which translation
+                opportunities should be fetched. If topic_id is None or empty,
                 fetch translation opportunities from all topics.
             search_cursor: str or None. If provided, the list of returned
                 entities starts from this datastore cursor. Otherwise, the
@@ -273,7 +273,7 @@ class ContributionOpportunitiesHandler(
         """
         opportunities, next_cursor, more = (
             opportunity_services.get_translation_opportunities(
-                language_code, topic_name, search_cursor
+                language_code, topic_id, search_cursor
             )
         )
         opportunity_dicts = [opp.to_dict() for opp in opportunities]
@@ -848,7 +848,7 @@ class FeaturedTranslationLanguagesHandler(
 
 
 class TranslatableTopicNamesHandler(
-    base.BaseHandler[Dict[str, str], Dict[str, str]]
+    base.BaseHandler[Dict[str, str], Dict[str, List[Dict[str, str]]]]
 ):
     """Provides names of all translatable topics in the datastore."""
 
@@ -859,7 +859,10 @@ class TranslatableTopicNamesHandler(
     @acl_decorators.open_access
     def get(self) -> None:
         topic_summaries = topic_fetchers.get_all_topic_summaries()
-        topic_names = [summary.name for summary in topic_summaries]
+        topic_names = [
+            {'id': summary.id, 'name': summary.name} 
+            for summary in topic_summaries
+        ]
         self.values = {'topic_names': topic_names}
         self.render_json(self.values)
 
@@ -868,7 +871,7 @@ class TranslatableTopicNamesPerClassroomHandlerDict(TypedDict):
     """A dictionary representing all topics associated to classroom."""
 
     classroom: str
-    topics: List[str]
+    topics: List[Dict[str, str]]
 
 
 class TranslatableTopicNamesPerClassroomHandler(
@@ -894,11 +897,11 @@ class TranslatableTopicNamesPerClassroomHandler(
         }
 
         # Group topics by classroom and format response.
-        topics_per_classroom: Dict[str, List[str]] = {}
+        topics_per_classroom: Dict[str, List[Dict[str, str]]] = {}
         for summary in topic_fetchers.get_all_topic_summaries():
             classroom_name = topic_id_to_classroom.get(summary.id, '')
             topics_per_classroom.setdefault(classroom_name, []).append(
-                summary.name
+                {'id': summary.id, 'name': summary.name}
             )
 
         self.values = {

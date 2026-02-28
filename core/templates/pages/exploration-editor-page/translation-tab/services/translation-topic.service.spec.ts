@@ -16,12 +16,12 @@
  * @fileoverview Unit test for the Translation topic service.
  */
 
-import {ContributionOpportunitiesService} from 'pages/contributor-dashboard-page/services/contribution-opportunities.service';
-import {EventEmitter} from '@angular/core';
-import {HttpClientTestingModule} from '@angular/common/http/testing';
-import {LoggerService} from 'services/contextual/logger.service';
-import {TranslationTopicService} from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
-import {fakeAsync, TestBed, tick} from '@angular/core/testing';
+import { ContributionOpportunitiesService } from 'pages/contributor-dashboard-page/services/contribution-opportunities.service';
+import { EventEmitter } from '@angular/core';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { LoggerService } from 'services/contextual/logger.service';
+import { TranslationTopicService } from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 
 describe('Translation topic service', () => {
   let loggerService: LoggerService;
@@ -47,12 +47,12 @@ describe('Translation topic service', () => {
     spyOn(
       contributionOpportunitiesService,
       'getTranslatableTopicNamesAsync'
-    ).and.returnValue(Promise.resolve(['Topic 1', 'Topic 2']));
+    ).and.returnValue(Promise.resolve([{ id: 'Topic 1', name: 'Topic 1' }, { id: 'Topic 2', name: 'Topic 2' }]));
   });
 
   describe('Translation topic service', () => {
     it('should correctly set and get topic names', fakeAsync(() => {
-      translationTopicService.setActiveTopicName('Topic 1');
+      translationTopicService.setActiveTopic({ id: 'Topic 1', name: 'Topic 1' });
       tick();
       expect(translationTopicService.getActiveTopicName()).toBe('Topic 1');
     }));
@@ -60,14 +60,14 @@ describe('Translation topic service', () => {
     it('should not allow invalid topic names to be set', fakeAsync(() => {
       const logErrorSpy = spyOn(loggerService, 'error').and.callThrough();
 
-      translationTopicService.setActiveTopicName('Topic 3');
+      translationTopicService.setActiveTopic({ id: 'Topic 3', name: 'Topic 3' });
       tick();
       expect(translationTopicService.getActiveTopicName()).toBeUndefined();
       expect(logErrorSpy).toHaveBeenCalledWith(
         'Invalid active topic name: Topic 3'
       );
 
-      translationTopicService.setActiveTopicName(null);
+      translationTopicService.setActiveTopic({ id: null as unknown as string, name: null as unknown as string });
       tick();
       expect(translationTopicService.getActiveTopicName()).toBeUndefined();
     }));

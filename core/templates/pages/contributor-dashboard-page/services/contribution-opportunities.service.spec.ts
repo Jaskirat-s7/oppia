@@ -15,18 +15,18 @@
  * @fileoverview Unit tests for Contribution Opportunities Service.
  */
 
-import {NgbModal, NgbModalRef} from '@ng-bootstrap/ng-bootstrap';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import {
   ContributionOpportunitiesService,
   ExplorationOpportunitiesDict,
   SkillOpportunitiesDict,
 } from '../services/contribution-opportunities.service';
-import {ContributionOpportunitiesBackendApiService} from 'pages/contributor-dashboard-page/services/contribution-opportunities-backend-api.service';
-import {HttpClientTestingModule} from '@angular/common/http/testing';
-import {fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {LoginRequiredModalContent} from '../modal-templates/login-required-modal.component';
-import {SkillOpportunity} from 'domain/opportunity/skill-opportunity.model';
-import {ExplorationOpportunitySummary} from 'domain/opportunity/exploration-opportunity-summary.model';
+import { ContributionOpportunitiesBackendApiService } from 'pages/contributor-dashboard-page/services/contribution-opportunities-backend-api.service';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { LoginRequiredModalContent } from '../modal-templates/login-required-modal.component';
+import { SkillOpportunity } from 'domain/opportunity/skill-opportunity.model';
+import { ExplorationOpportunitySummary } from 'domain/opportunity/exploration-opportunity-summary.model';
 class MockNgbModalRef {
   componentInstance!: {};
 }
@@ -114,7 +114,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should return skill opportunities when calling ' +
-      "'getSkillOpportunitiesAsync'",
+    "'getSkillOpportunitiesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
@@ -147,7 +147,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should return more skill opportunities if they are available ' +
-      "when calling 'getMoreSkillOpportunitiesAsync'",
+    "when calling 'getMoreSkillOpportunitiesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
@@ -180,7 +180,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should throw error if no more skill opportunity is available ' +
-      "when calling 'getMoreSkillOpportunitiesAsync'",
+    "when calling 'getMoreSkillOpportunitiesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
@@ -215,7 +215,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should return translation opportunities when calling ' +
-      "'getTranslationOpportunitiesAsync'",
+    "'getTranslationOpportunitiesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
@@ -248,7 +248,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should return more translation opportunities if they are available ' +
-      "when calling 'getMoreTranslationOpportunitiesAsync'",
+    "when calling 'getMoreTranslationOpportunitiesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
@@ -281,7 +281,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should return reviewable translation opportunities when calling ' +
-      "'getReviewableTranslationOpportunitiesAsync'",
+    "'getReviewableTranslationOpportunitiesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
@@ -311,7 +311,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should throw error if no more translation opportunities is available ' +
-      "when calling 'getMoreTranslationOpportunitiesAsync'",
+    "when calling 'getMoreTranslationOpportunitiesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
@@ -346,12 +346,12 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should return topic names when calling ' +
-      "'getTranslatableTopicNamesAsync'",
+    "'getTranslatableTopicNamesAsync'",
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');
 
-      let topicNamesDict = ['Topic 1', 'Topic 2'];
+      let topicNamesDict = [{ id: 'Topic 1', name: 'Topic 1' }, { id: 'Topic 2', name: 'Topic 2' }];
 
       let getTranslatableTopicNamesSpy = spyOn(
         contributionOpportunitiesBackendApiService,
@@ -391,7 +391,7 @@ describe('Contribution Opportunities Service', () => {
 
   it(
     'should successfully unpin reviewable pinned translation' +
-      ' opportunities',
+    ' opportunities',
     fakeAsync(() => {
       const successHandler = jasmine.createSpy('success');
       const failHandler = jasmine.createSpy('fail');

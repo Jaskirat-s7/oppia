@@ -16,7 +16,7 @@
  * @fileoverview Unit tests for the translation topic selector component.
  */
 
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import {
   TranslationTopicSelectorComponent,
@@ -32,16 +32,16 @@ describe('Translation language selector', () => {
   let fixture: ComponentFixture<TranslationTopicSelectorComponent>;
 
   const topicsPerClassroomBackendDict = [
-    {classroom: 'Class 1', topics: ['Topic 1', 'Topic 2']},
-    {classroom: 'Class 2', topics: ['Topic 3']},
-    {classroom: '', topics: ['All', 'Topic 4']},
+    { classroom: 'Class 1', topics: [{ id: 'Topic 1', name: 'Topic 1' }, { id: 'Topic 2', name: 'Topic 2' }] },
+    { classroom: 'Class 2', topics: [{ id: 'Topic 3', name: 'Topic 3' }] },
+    { classroom: '', topics: [{ id: 'All', name: 'All' }, { id: 'Topic 4', name: 'Topic 4' }] },
   ];
 
   let contributionOpportunitiesBackendApiServiceStub: Partial<ContributionOpportunitiesBackendApiService> =
-    {
-      fetchTranslatableTopicNamesPerClassroomAsync: async () =>
-        Promise.resolve(topicsPerClassroomBackendDict),
-    };
+  {
+    fetchTranslatableTopicNamesPerClassroomAsync: async () =>
+      Promise.resolve(topicsPerClassroomBackendDict),
+  };
 
   let clickDropdown: () => void;
   let getDropdownOptionsContainer: () => HTMLElement;
@@ -139,11 +139,11 @@ describe('Translation language selector', () => {
   });
 
   it('should correctly select and indicate selection of an option', () => {
-    spyOn(component.setActiveTopicName, 'emit');
+    spyOn(component.setActiveTopic, 'emit');
 
-    component.selectOption('Topic 1');
+    component.selectOption({ id: 'Topic 1', name: 'Topic 1' });
     fixture.detectChanges();
 
-    expect(component.setActiveTopicName.emit).toHaveBeenCalledWith('Topic 1');
+    expect(component.setActiveTopic.emit).toHaveBeenCalledWith({ id: 'Topic 1', name: 'Topic 1' });
   });
 });

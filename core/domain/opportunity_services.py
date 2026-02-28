@@ -604,7 +604,7 @@ def delete_exp_opportunities_corresponding_to_story(story_id: str) -> None:
 
 
 def get_translation_opportunities(
-    language_code: str, topic_name: Optional[str], cursor: Optional[str]
+    language_code: str, topic_id: Optional[str], cursor: Optional[str]
 ) -> Tuple[
     List[opportunity_domain.ExplorationOpportunitySummary], Optional[str], bool
 ]:
@@ -617,8 +617,8 @@ def get_translation_opportunities(
             entities start from the beginning of the full list of entities.
         language_code: str. The language for which translation opportunities
             should be fetched.
-        topic_name: str or None. The topic for which translation opportunities
-            should be fetched. If topic_name is None or empty, fetch
+        topic_id: str or None. The topic ID for which translation opportunities
+            should be fetched. If topic_id is None or empty, fetch
             translation opportunities from all topics.
 
     Returns:
@@ -633,7 +633,7 @@ def get_translation_opportunities(
     page_size = constants.OPPORTUNITIES_PAGE_SIZE
     exp_opportunity_summary_models, cursor, more = (
         opportunity_models.ExplorationOpportunitySummaryModel.get_all_translation_opportunities(
-            page_size, cursor, language_code, topic_name
+            page_size, cursor, language_code, topic_id
         )
     )
     opportunity_summaries = []

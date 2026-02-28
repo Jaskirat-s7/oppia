@@ -16,14 +16,14 @@
  * @fileoverview Component for the translation opportunities.
  */
 
-import {Component, Injector} from '@angular/core';
-import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
-import {UrlInterpolationService} from 'domain/utilities/url-interpolation.service';
-import {TranslationLanguageService} from 'pages/exploration-editor-page/translation-tab/services/translation-language.service';
-import {TranslationTopicService} from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
-import {PageContextService} from 'services/page-context.service';
-import {SiteAnalyticsService} from 'services/site-analytics.service';
-import {UserService} from 'services/user.service';
+import { Component, Injector } from '@angular/core';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
+import { UrlInterpolationService } from 'domain/utilities/url-interpolation.service';
+import { TranslationLanguageService } from 'pages/exploration-editor-page/translation-tab/services/translation-language.service';
+import { TranslationTopicService } from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
+import { PageContextService } from 'services/page-context.service';
+import { SiteAnalyticsService } from 'services/site-analytics.service';
+import { UserService } from 'services/user.service';
 import {
   TranslationModalComponent,
   TranslationOpportunity,
@@ -32,7 +32,7 @@ import {
   ContributionOpportunitiesService,
   ExplorationOpportunitiesDict,
 } from '../services/contribution-opportunities.service';
-import {TranslateTextService} from '../services/translate-text.service';
+import { TranslateTextService } from '../services/translate-text.service';
 
 @Component({
   selector: 'oppia-translation-opportunities',
@@ -44,7 +44,7 @@ export class TranslationOpportunitiesComponent {
   // https://github.com/oppia/oppia/wiki/Guide-on-defining-types#ts-7-1
   OPPIA_AVATAR_IMAGE_URL!: string;
 
-  allOpportunities: {[id: string]: TranslationOpportunity} = {};
+  allOpportunities: { [id: string]: TranslationOpportunity } = {};
   userIsLoggedIn = false;
   opportunityType = 'translation';
   languageSelected = false;
@@ -59,7 +59,7 @@ export class TranslationOpportunitiesComponent {
     private readonly urlInterpolationService: UrlInterpolationService,
     private readonly userService: UserService,
     private readonly injector: Injector
-  ) {}
+  ) { }
 
   getOpportunitySummary(expId: string): TranslationOpportunity {
     return this.allOpportunities[expId];
@@ -103,7 +103,7 @@ export class TranslationOpportunitiesComponent {
       }
     }
     opportunitiesDicts.push(...untranslatableOpportunitiesDicts);
-    return {opportunitiesDicts, more};
+    return { opportunitiesDicts, more };
   }
 
   onClickButton(expId: string): void {
@@ -153,7 +153,7 @@ export class TranslationOpportunitiesComponent {
     return this.contributionOpportunitiesService
       .getMoreTranslationOpportunitiesAsync(
         this.translationLanguageService.getActiveLanguageCode(),
-        this.translationTopicService.getActiveTopicName()
+        this.translationTopicService.getActiveTopicId()
       )
       .then(this.getPresentableOpportunitiesData.bind(this));
   }
@@ -165,7 +165,7 @@ export class TranslationOpportunitiesComponent {
     return this.contributionOpportunitiesService
       .getTranslationOpportunitiesAsync(
         this.translationLanguageService.getActiveLanguageCode(),
-        this.translationTopicService.getActiveTopicName()
+        this.translationTopicService.getActiveTopicId()
       )
       .then(this.getPresentableOpportunitiesData.bind(this));
   }

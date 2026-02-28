@@ -16,14 +16,17 @@
  * @fileoverview A service for handling contribution opportunities in different
  * fields.
  */
-import {EventEmitter} from '@angular/core';
-import {Injectable} from '@angular/core';
+import { EventEmitter } from '@angular/core';
+import { Injectable } from '@angular/core';
 
-import {ContributionOpportunitiesBackendApiService} from 'pages/contributor-dashboard-page/services/contribution-opportunities-backend-api.service';
-import {SkillOpportunity} from 'domain/opportunity/skill-opportunity.model';
-import {ExplorationOpportunitySummary} from 'domain/opportunity/exploration-opportunity-summary.model';
-import {LoginRequiredModalContent} from 'pages/contributor-dashboard-page/modal-templates/login-required-modal.component';
-import {NgbModal} from '@ng-bootstrap/ng-bootstrap';
+import {
+  ContributionOpportunitiesBackendApiService,
+  TopicBackendDict
+} from 'pages/contributor-dashboard-page/services/contribution-opportunities-backend-api.service';
+import { SkillOpportunity } from 'domain/opportunity/skill-opportunity.model';
+import { ExplorationOpportunitySummary } from 'domain/opportunity/exploration-opportunity-summary.model';
+import { LoginRequiredModalContent } from 'pages/contributor-dashboard-page/modal-templates/login-required-modal.component';
+import { NgbModal } from '@ng-bootstrap/ng-bootstrap';
 
 export interface SkillOpportunitiesDict {
   opportunities: SkillOpportunity[];
@@ -42,7 +45,7 @@ export class ContributionOpportunitiesService {
   constructor(
     private readonly contributionOpportunitiesBackendApiService: ContributionOpportunitiesBackendApiService,
     private readonly modalService: NgbModal
-  ) {}
+  ) { }
 
   private _reloadOpportunitiesEventEmitter = new EventEmitter<void>();
   private _removeOpportunitiesEventEmitter = new EventEmitter<string[]>();
@@ -67,7 +70,7 @@ export class ContributionOpportunitiesService {
   ): Promise<SkillOpportunitiesDict> {
     return this.contributionOpportunitiesBackendApiService
       .fetchSkillOpportunitiesAsync(cursor)
-      .then(({opportunities, nextCursor, more}) => {
+      .then(({ opportunities, nextCursor, more }) => {
         this._skillOpportunitiesCursor = nextCursor;
         this._moreSkillOpportunitiesAvailable = more;
         return {
@@ -79,12 +82,12 @@ export class ContributionOpportunitiesService {
 
   private async _getTranslationOpportunitiesAsync(
     languageCode: string,
-    topicName: string,
+    topicId: string,
     cursor: string
   ) {
     return this.contributionOpportunitiesBackendApiService
-      .fetchTranslationOpportunitiesAsync(languageCode, topicName, cursor)
-      .then(({opportunities, nextCursor, more}) => {
+      .fetchTranslationOpportunitiesAsync(languageCode, topicId, cursor)
+      .then(({ opportunities, nextCursor, more }) => {
         this._translationOpportunitiesCursor = nextCursor;
         this._moreTranslationOpportunitiesAvailable = more;
         return {
@@ -108,9 +111,9 @@ export class ContributionOpportunitiesService {
 
   async getTranslationOpportunitiesAsync(
     languageCode: string,
-    topicName: string
+    topicId: string
   ): Promise<ExplorationOpportunitiesDict> {
-    return this._getTranslationOpportunitiesAsync(languageCode, topicName, '');
+    return this._getTranslationOpportunitiesAsync(languageCode, topicId, '');
   }
 
   async getMoreSkillOpportunitiesAsync(): Promise<SkillOpportunitiesDict> {
@@ -122,12 +125,12 @@ export class ContributionOpportunitiesService {
 
   async getMoreTranslationOpportunitiesAsync(
     languageCode: string,
-    topicName: string
+    topicId: string
   ): Promise<ExplorationOpportunitiesDict> {
     if (this._moreTranslationOpportunitiesAvailable) {
       return this._getTranslationOpportunitiesAsync(
         languageCode,
-        topicName,
+        topicId,
         this._translationOpportunitiesCursor
       );
     }
@@ -140,7 +143,7 @@ export class ContributionOpportunitiesService {
   ): Promise<ExplorationOpportunitiesDict> {
     return this.contributionOpportunitiesBackendApiService
       .fetchReviewableTranslationOpportunitiesAsync(topicName, languageCode)
-      .then(({opportunities}) => {
+      .then(({ opportunities }) => {
         return {
           opportunities: opportunities,
           more: false,
@@ -148,7 +151,7 @@ export class ContributionOpportunitiesService {
       });
   }
 
-  async getTranslatableTopicNamesAsync(): Promise<string[]> {
+  async getTranslatableTopicNamesAsync(): Promise<TopicBackendDict[]> {
     return this._getTranslatableTopicNamesAsync();
   }
 

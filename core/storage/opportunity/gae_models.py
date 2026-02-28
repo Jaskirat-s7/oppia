@@ -99,7 +99,7 @@ class ExplorationOpportunitySummaryModel(base_models.BaseModel):
         page_size: int,
         urlsafe_start_cursor: Optional[str],
         language_code: str,
-        topic_name: Optional[str],
+        topic_id: Optional[str],
     ) -> Tuple[
         Sequence[ExplorationOpportunitySummaryModel], Optional[str], bool
     ]:
@@ -114,8 +114,8 @@ class ExplorationOpportunitySummaryModel(base_models.BaseModel):
                 of the full list of entities.
             language_code: str. The language for which translation opportunities
                 are to be fetched.
-            topic_name: str or None. The topic for which translation
-                opportunities should be fetched. If topic_name is None or empty,
+            topic_id: str or None. The topic ID for which translation
+                opportunities should be fetched. If topic_id is None or empty,
                 fetch translation opportunities from all topics.
 
         Returns:
@@ -142,8 +142,8 @@ class ExplorationOpportunitySummaryModel(base_models.BaseModel):
             cls.incomplete_translation_language_codes == language_code
         ).order(cls.topic_name)
 
-        if topic_name:
-            language_query = language_query.filter(cls.topic_name == topic_name)
+        if topic_id:
+            language_query = language_query.filter(cls.topic_id == topic_id)
 
         fetch_result: Tuple[
             Sequence[ExplorationOpportunitySummaryModel],

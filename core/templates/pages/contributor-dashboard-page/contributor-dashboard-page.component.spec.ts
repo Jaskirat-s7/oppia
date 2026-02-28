@@ -23,19 +23,19 @@ import {
   TestBed,
   waitForAsync,
 } from '@angular/core/testing';
-import {HttpClientTestingModule} from '@angular/common/http/testing';
-import {FocusManagerService} from 'services/stateful/focus-manager.service';
-import {ContributorDashboardPageComponent} from 'pages/contributor-dashboard-page/contributor-dashboard-page.component';
-import {ContributionAndReviewService} from './services/contribution-and-review.service';
-import {ContributionOpportunitiesService} from './services/contribution-opportunities.service';
-import {TranslationTopicService} from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
-import {TranslationLanguageService} from 'pages/exploration-editor-page/translation-tab/services/translation-language.service';
-import {UserService} from 'services/user.service';
-import {LocalStorageService} from 'services/local-storage.service';
-import {NO_ERRORS_SCHEMA} from '@angular/core';
-import {UserInfo} from 'domain/user/user-info.model';
-import {AppConstants} from 'app.constants';
-import {UrlInterpolationService} from 'domain/utilities/url-interpolation.service';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { FocusManagerService } from 'services/stateful/focus-manager.service';
+import { ContributorDashboardPageComponent } from 'pages/contributor-dashboard-page/contributor-dashboard-page.component';
+import { ContributionAndReviewService } from './services/contribution-and-review.service';
+import { ContributionOpportunitiesService } from './services/contribution-opportunities.service';
+import { TranslationTopicService } from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
+import { TranslationLanguageService } from 'pages/exploration-editor-page/translation-tab/services/translation-language.service';
+import { UserService } from 'services/user.service';
+import { LocalStorageService } from 'services/local-storage.service';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+import { UserInfo } from 'domain/user/user-info.model';
+import { AppConstants } from 'app.constants';
+import { UrlInterpolationService } from 'domain/utilities/url-interpolation.service';
 
 describe('Contributor dashboard page', () => {
   let component: ContributorDashboardPageComponent;
@@ -93,7 +93,7 @@ describe('Contributor dashboard page', () => {
       'getTranslatableTopicNamesAsync'
     );
     getTranslatableTopicNamesAsyncSpy.and.returnValue(
-      Promise.resolve(['Topic 1', 'Topic 2'])
+      Promise.resolve([{ id: 'Topic 1', name: 'Topic 1' }, { id: 'Topic 2', name: 'Topic 2' }])
     );
     spyOn(
       localStorageService,
@@ -107,7 +107,7 @@ describe('Contributor dashboard page', () => {
       translationLanguageService,
       'setActiveLanguageCode'
     ).and.callThrough();
-    spyOn(translationTopicService, 'setActiveTopicName').and.callThrough();
+    spyOn(translationTopicService, 'setActiveTopic').and.callThrough();
 
     let userInfo = {
       isLoggedIn: () => true,
@@ -209,7 +209,7 @@ describe('Contributor dashboard page', () => {
       flush();
 
       expect(component.topicName).toBe('Topic 1');
-      expect(translationTopicService.setActiveTopicName).toHaveBeenCalled();
+      expect(translationTopicService.setActiveTopic).toHaveBeenCalled();
       expect(component.activeTabName).toBe('myContributionTab');
       expect(component.OPPIA_AVATAR_IMAGE_URL).toBe(
         '/assets/copyrighted-images/avatar/oppia_avatar_100px.svg'
@@ -232,7 +232,7 @@ describe('Contributor dashboard page', () => {
       flush();
 
       expect(component.topicName).toBeUndefined();
-      expect(translationTopicService.setActiveTopicName).toHaveBeenCalled();
+      expect(translationTopicService.setActiveTopic).toHaveBeenCalled();
     }));
 
     it('should return language description in kebab case format', () => {
@@ -248,7 +248,7 @@ describe('Contributor dashboard page', () => {
 
     it(
       'should initialize component properties after component is initialized' +
-        ' and get data from backend',
+      ' and get data from backend',
       () => {
         spyOn(
           userService,
@@ -313,11 +313,12 @@ describe('Contributor dashboard page', () => {
         'updateLastSelectedTranslationTopicName'
       ).and.callThrough();
 
-      component.onChangeTopic('Topic 2');
+      component.onChangeTopic({ id: 'Topic 2', name: 'Topic 2' });
 
-      expect(translationTopicService.setActiveTopicName).toHaveBeenCalledWith(
-        'Topic 2'
-      );
+      expect(translationTopicService.setActiveTopic).toHaveBeenCalledWith({
+        id: 'Topic 2',
+        name: 'Topic 2'
+      });
       expect(
         localStorageService.updateLastSelectedTranslationTopicName
       ).toHaveBeenCalledWith('Topic 2');

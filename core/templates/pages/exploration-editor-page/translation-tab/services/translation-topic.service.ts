@@ -17,14 +17,15 @@
  * in the translation tab is currently active.
  */
 
-import {EventEmitter, Injectable} from '@angular/core';
+import { EventEmitter, Injectable } from '@angular/core';
 
-import {AppConstants} from 'app.constants';
+import { AppConstants } from 'app.constants';
 import {
   ContributionOpportunitiesService,
   // eslint-disable-next-line max-len
 } from 'pages/contributor-dashboard-page/services/contribution-opportunities.service';
-import {LoggerService} from 'services/contextual/logger.service';
+import { TopicBackendDict } from 'pages/contributor-dashboard-page/services/contribution-opportunities-backend-api.service';
+import { LoggerService } from 'services/contextual/logger.service';
 
 @Injectable({
   providedIn: 'root',
@@ -34,30 +35,36 @@ export class TranslationTopicService {
   // and we need to do non-null assertion. For more information, see
   // https://github.com/oppia/oppia/wiki/Guide-on-defining-types#ts-7-1
   private activeTopicName!: string;
+  private activeTopicId!: string;
   private _activeTopicChangedEventEmitter = new EventEmitter<void>();
 
   constructor(
     private ContributionOpportunitiesService: ContributionOpportunitiesService,
     private loggerService: LoggerService
-  ) {}
+  ) { }
 
   getActiveTopicName(): string {
     return this.activeTopicName;
   }
 
-  setActiveTopicName(newActiveTopicName: string): void {
+  getActiveTopicId(): string {
+    return this.activeTopicId;
+  }
+
+  setActiveTopic(topic: TopicBackendDict): void {
     this.ContributionOpportunitiesService.getTranslatableTopicNamesAsync().then(
       data => {
         if (
-          newActiveTopicName !== AppConstants.TOPIC_SENTINEL_NAME_ALL &&
-          data.indexOf(newActiveTopicName) < 0
+          topic.name !== AppConstants.TOPIC_SENTINEL_NAME_ALL &&
+          !data.some(t => t.id === topic.id)
         ) {
           this.loggerService.error(
-            `Invalid active topic name: ${newActiveTopicName}`
+            `Invalid active topic name: ${topic.name}`
           );
           return;
         }
-        this.activeTopicName = newActiveTopicName;
+        this.activeTopicName = topic.name;
+        this.activeTopicId = topic.id;
         this._activeTopicChangedEventEmitter.emit();
       }
     );
