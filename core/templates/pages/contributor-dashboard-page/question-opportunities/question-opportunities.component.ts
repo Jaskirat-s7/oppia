@@ -16,20 +16,22 @@
  * @fileoverview Component for question opportunities.
  */
 
-import {Component, OnInit} from '@angular/core';
-import {NgbModal, NgbModalRef} from '@ng-bootstrap/ng-bootstrap';
-import {AppConstants} from 'app.constants';
-import {Question} from 'domain/question/question.model';
-import {QuestionUndoRedoService} from 'domain/editor/undo_redo/question-undo-redo.service';
-import {Skill} from 'domain/skill/skill.model.ts';
-import {SkillOpportunity} from 'domain/opportunity/skill-opportunity.model';
-import {QuestionsOpportunitiesSelectDifficultyModalComponent} from 'pages/topic-editor-page/modal-templates/questions-opportunities-select-difficulty-modal.component';
-import {QuestionSuggestionEditorModalComponent} from '../modal-templates/question-suggestion-editor-modal.component';
-import {AlertsService} from 'services/alerts.service';
-import {PageContextService} from 'services/page-context.service';
-import {ContributionOpportunitiesService} from '../services/contribution-opportunities.service';
-import {SiteAnalyticsService} from 'services/site-analytics.service';
-import {UserService} from 'services/user.service';
+import { Component, OnInit } from '@angular/core';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+import { AppConstants } from 'app.constants';
+import { Question } from 'domain/question/question.model';
+import { QuestionUndoRedoService } from 'domain/editor/undo_redo/question-undo-redo.service';
+import { Skill } from 'domain/skill/skill.model.ts';
+import { SkillOpportunity } from 'domain/opportunity/skill-opportunity.model';
+import { QuestionsOpportunitiesSelectDifficultyModalComponent } from 'pages/topic-editor-page/modal-templates/questions-opportunities-select-difficulty-modal.component';
+import { QuestionSuggestionEditorModalComponent } from '../modal-templates/question-suggestion-editor-modal.component';
+import { AlertsService } from 'services/alerts.service';
+import { PageContextService } from 'services/page-context.service';
+import { ContributionOpportunitiesService } from '../services/contribution-opportunities.service';
+import { SiteAnalyticsService } from 'services/site-analytics.service';
+import { TranslationTopicService } from 'pages/exploration-editor-page/translation-tab/services/translation-topic.service';
+import { UserService } from 'services/user.service';
+
 
 interface Opportunity {
   id: string;
@@ -64,8 +66,9 @@ export class QuestionOpportunitiesComponent implements OnInit {
     private ngbModal: NgbModal,
     private questionUndoRedoService: QuestionUndoRedoService,
     private siteAnalyticsService: SiteAnalyticsService,
+    private translationTopicService: TranslationTopicService,
     private userService: UserService
-  ) {}
+  ) { }
 
   getPresentableOpportunitiesData(
     opportunitiesObject: GetSkillOpportunitiesResponse
@@ -94,7 +97,7 @@ export class QuestionOpportunitiesComponent implements OnInit {
       opportunitiesDicts.push(opportunityDict);
     }
 
-    return {opportunitiesDicts, more};
+    return { opportunitiesDicts, more };
   }
 
   createQuestion(skill: Skill, skillDifficulty: number): void {
@@ -121,11 +124,19 @@ export class QuestionOpportunitiesComponent implements OnInit {
     modalRef.componentInstance.skillDifficulty = skillDifficulty;
 
     modalRef.result.then(
-      () => {},
+      () => { },
       () => {
         this.pageContextService.resetImageSaveDestination();
       }
     );
+  }
+
+  private getActiveTopicId(): string | undefined {
+    const topicId = this.translationTopicService.getActiveTopicId();
+    if (!topicId || topicId === AppConstants.TOPIC_SENTINEL_NAME_ALL) {
+      return undefined;
+    }
+    return topicId;
   }
 
   loadMoreOpportunities(): Promise<{
@@ -133,7 +144,7 @@ export class QuestionOpportunitiesComponent implements OnInit {
     more: boolean;
   }> {
     return this.contributionOpportunitiesService
-      .getMoreSkillOpportunitiesAsync()
+      .getMoreSkillOpportunitiesAsync(this.getActiveTopicId())
       .then(this.getPresentableOpportunitiesData.bind(this));
   }
 
@@ -142,7 +153,7 @@ export class QuestionOpportunitiesComponent implements OnInit {
     more: boolean;
   }> {
     return this.contributionOpportunitiesService
-      .getSkillOpportunitiesAsync()
+      .getSkillOpportunitiesAsync(this.getActiveTopicId())
       .then(this.getPresentableOpportunitiesData.bind(this));
   }
 
@@ -182,6 +193,9 @@ export class QuestionOpportunitiesComponent implements OnInit {
   ngOnInit(): void {
     this.userService.getUserInfoAsync().then(userInfo => {
       this.userIsLoggedIn = userInfo.isLoggedIn();
+    });
+    this.translationTopicService.onActiveTopicChanged.subscribe(() => {
+      this.contributionOpportunitiesService.reloadOpportunitiesEventEmitter.emit();
     });
   }
 }

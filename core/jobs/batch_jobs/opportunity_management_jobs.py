@@ -40,7 +40,7 @@ from core.platform import models
 
 import apache_beam as beam
 import result
-from typing import Dict, List
+from typing import Dict, List, Tuple, Union
 
 MYPY = False
 if MYPY:  # pragma: no cover
@@ -254,6 +254,100 @@ class GenerateSkillOpportunityModelJob(base_jobs.JobBase):
         )
 
         return opportunities_results | 'Transform Results to JobRunResults' >> (
+            job_result_transforms.ResultsToJobRunResults()
+        )
+
+
+class BackfillSkillOpportunityTopicIdJob(base_jobs.JobBase):
+    """Job for backfilling topic_id on SkillOpportunityModel."""
+
+    def run(self) -> beam.PCollection[job_run_result.JobRunResult]:
+        """Returns a PCollection of 'SUCCESS' or 'FAILURE' results from
+        backfilling SkillOpportunityModel.
+
+        Returns:
+            PCollection. A PCollection of 'SUCCESS' or 'FAILURE' results from
+            backfilling SkillOpportunityModel.
+        """
+        topic_skill_mapping = (
+            self.pipeline
+            | 'Get all non-deleted TopicModels'
+            >> ndb_io.GetModels(
+                topic_models.TopicModel.get_all(include_deleted=False)
+            )
+            | 'Extract domain objects'
+            >> beam.Map(topic_fetchers.get_topic_from_model)
+            # Yields (skill_id, topic_id) for every skill in a topic.
+            | 'Yield skill-topic pairs'
+            >> beam.FlatMap(
+                lambda topic: [
+                    (skill_id, topic.id) for skill_id in topic.get_all_skill_ids()
+                ]
+            )
+        )
+
+        skill_opportunity_models = (
+            self.pipeline
+            | 'Get all non-deleted SkillOpportunityModels'
+            >> ndb_io.GetModels(
+                opportunity_models.SkillOpportunityModel.get_all(
+                    include_deleted=False
+                )
+            )
+            | 'Key by skill ID' >> beam.Map(lambda model: (model.id, model))
+        )
+
+        def _update_topic_id(
+            skill_id_and_data_dict: Tuple[
+                str,
+                Dict[
+                    str,
+                    List[
+                        Union[str, opportunity_models.SkillOpportunityModel]
+                    ],
+                ]
+            ]
+        ) -> result.Result[
+            opportunity_models.SkillOpportunityModel, Exception
+        ]:
+            """Updates the topic_id of a SkillOpportunityModel."""
+            try:
+                data_dict = skill_id_and_data_dict[1]
+                topic_ids = data_dict['topic_id']
+                models = data_dict['model']
+
+                if not models:
+                    return result.Err(Exception('No model found'))
+
+                opportunity_model = models[0]
+                # If a skill doesn't belong to any topic, topic_ids will be []
+                topic_id = topic_ids[0] if topic_ids else None
+
+                opportunity_model.topic_id = topic_id
+                opportunity_model.update_timestamps()
+                return result.Ok(opportunity_model)
+            except Exception as e:
+                return result.Err(e)
+
+        backfill_results = (
+            {
+                'topic_id': topic_skill_mapping,
+                'model': skill_opportunity_models,
+            }
+            | 'CoGroupByKey' >> beam.CoGroupByKey()
+            | 'Update topic IDs' >> beam.Map(_update_topic_id)
+        )
+
+        unused_put_result = (
+            backfill_results
+            | 'Filter OK results'
+            >> beam.Filter(lambda res: res.is_ok())
+            | 'Unwrap results'
+            >> beam.Map(lambda res: res.unwrap())
+            | 'Put updated models' >> ndb_io.PutModels()
+        )
+
+        return backfill_results | 'Transform to JobRunResults' >> (
             job_result_transforms.ResultsToJobRunResults()
         )
 

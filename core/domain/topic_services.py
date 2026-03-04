@@ -1567,6 +1567,7 @@ def delete_topic(
             topic_id
         )
     )
+    opportunity_services.clear_skill_opportunity_topic_id_for_topic(topic_id)
 
 
 def delete_topic_summary(topic_id: str) -> None:

@@ -109,9 +109,13 @@ export class ContributionOpportunitiesBackendApiService {
   private UPDATE_PINNED_OPPORTUNITY_HANDLER_URL = '/pinned-opportunities';
 
   async fetchSkillOpportunitiesAsync(
-    cursor: string
+    cursor: string,
+    topicId?: string
   ): Promise<SkillContributionOpportunities> {
-    const params = {cursor};
+    const params: {cursor: string; topic_id?: string} = {cursor};
+    if (topicId) {
+      params.topic_id = topicId;
+    }
 
     return this.http
       .get<SkillContributionOpportunitiesBackendDict>(

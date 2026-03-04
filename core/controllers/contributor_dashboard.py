@@ -96,7 +96,10 @@ class ContributionOpportunitiesHandler(
     }
     HANDLER_ARGS_SCHEMAS = {
         'GET': {
-            'cursor': {'schema': {'type': 'basestring'}, 'default_value': None},
+            'cursor': {
+                'schema': {'type': 'basestring'},
+                'default_value': None,
+            },
             'language_code': {
                 'schema': {
                     'type': 'basestring',
@@ -128,16 +131,16 @@ class ContributionOpportunitiesHandler(
         assert self.normalized_request is not None
         search_cursor = self.normalized_request.get('cursor')
         language_code = self.normalized_request.get('language_code')
+        topic_id = self.normalized_request.get('topic_id')
 
         if opportunity_type == constants.OPPORTUNITY_TYPE_SKILL:
             skill_opportunities, next_cursor, more = (
                 self._get_skill_opportunities_with_corresponding_topic_name(
-                    search_cursor
+                    search_cursor, topic_id
                 )
             )
 
         elif opportunity_type == constants.OPPORTUNITY_TYPE_TRANSLATION:
-            topic_id = self.normalized_request.get('topic_id')
             if language_code is None:
                 raise self.InvalidInputException
             translation_opportunities, next_cursor, more = (
@@ -160,7 +163,7 @@ class ContributionOpportunitiesHandler(
         self.render_json(self.values)
 
     def _get_skill_opportunities_with_corresponding_topic_name(
-        self, cursor: Optional[str]
+        self, cursor: Optional[str], topic_id: Optional[str] = None
     ) -> Tuple[List[ClientSideSkillOpportunityDict], Optional[str], bool]:
         """Returns a list of skill opportunities available for questions with
         a corresponding topic name.
@@ -169,6 +172,7 @@ class ContributionOpportunitiesHandler(
             cursor: str or None. If provided, the list of returned entities
                 starts from this datastore cursor. Otherwise, the returned
                 entities start from the beginning of the full list of entities.
+            topic_id: str or None. The topic ID to filter by. Defaults to None.
 
         Returns:
             3-tuple(opportunities, cursor, more). where:
@@ -199,7 +203,7 @@ class ContributionOpportunitiesHandler(
                 classroom_topic_skill_id_to_topic_name[skill_id] = topic.name
 
         skill_opportunities, cursor, more = (
-            opportunity_services.get_skill_opportunities(cursor)
+            opportunity_services.get_skill_opportunities(cursor, topic_id)
         )
         opportunities: List[ClientSideSkillOpportunityDict] = []
         # Fetch opportunities until we have at least a page's worth that
@@ -221,6 +225,7 @@ class ContributionOpportunitiesHandler(
                         'question_count': skill_opportunity_dict[
                             'question_count'
                         ],
+                        'topic_id': skill_opportunity_dict.get('topic_id'),
                         'topic_name': (
                             classroom_topic_skill_id_to_topic_name[
                                 skill_opportunity.id
@@ -234,7 +239,7 @@ class ContributionOpportunitiesHandler(
             ):
                 break
             skill_opportunities, cursor, more = (
-                opportunity_services.get_skill_opportunities(cursor)
+                opportunity_services.get_skill_opportunities(cursor, topic_id)
             )
 
         return opportunities, cursor, more

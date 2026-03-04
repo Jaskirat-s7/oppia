@@ -198,6 +198,9 @@ class SkillOpportunityModel(base_models.BaseModel):
     question_count = datastore_services.IntegerProperty(
         required=True, indexed=True
     )
+    # The topic_id of the topic this skill belongs to. May be None for
+    # skills not yet associated with any topic.
+    topic_id = datastore_services.StringProperty(indexed=True)
 
     @staticmethod
     def get_deletion_policy() -> base_models.DELETION_POLICY:
@@ -219,6 +222,7 @@ class SkillOpportunityModel(base_models.BaseModel):
             **{
                 'skill_description': base_models.EXPORT_POLICY.NOT_APPLICABLE,
                 'question_count': base_models.EXPORT_POLICY.NOT_APPLICABLE,
+                'topic_id': base_models.EXPORT_POLICY.NOT_APPLICABLE,
             },
         )
 
@@ -226,7 +230,10 @@ class SkillOpportunityModel(base_models.BaseModel):
     # tuple(list, str|None, bool) to a domain object.
     @classmethod
     def get_skill_opportunities(
-        cls, page_size: int, urlsafe_start_cursor: Optional[str]
+        cls,
+        page_size: int,
+        urlsafe_start_cursor: Optional[str],
+        topic_id: Optional[str] = None,
     ) -> Tuple[Sequence[SkillOpportunityModel], Optional[str], bool]:
         """Returns a list of skill opportunities available for adding questions.
 
@@ -236,6 +243,9 @@ class SkillOpportunityModel(base_models.BaseModel):
                 returned entities starts from this datastore cursor.
                 Otherwise, the returned entities start from the beginning
                 of the full list of entities.
+            topic_id: str or None. The topic ID for which skill opportunities
+                should be fetched. If topic_id is None, fetch skill
+                opportunities from all topics.
 
         Returns:
             3-tuple of (results, cursor, more). As described in fetch_page() at:
@@ -254,14 +264,17 @@ class SkillOpportunityModel(base_models.BaseModel):
             urlsafe_cursor=urlsafe_start_cursor
         )
 
-        created_on_query = cls.get_all().order(cls.created_on)
+        query = cls.get_all().order(cls.created_on)
+        if topic_id:
+            query = query.filter(cls.topic_id == topic_id)
+
         fetch_result: Tuple[
             Sequence[SkillOpportunityModel], datastore_services.Cursor, bool
-        ] = created_on_query.fetch_page(page_size, start_cursor=start_cursor)
+        ] = query.fetch_page(page_size, start_cursor=start_cursor)
         query_models, cursor, _ = fetch_result
         # TODO(#13462): Refactor this so that we don't do the lookup.
         # Do a forward lookup so that we can know if there are more values.
-        fetch_result = created_on_query.fetch_page(
+        fetch_result = query.fetch_page(
             page_size + 1, start_cursor=start_cursor
         )
         plus_one_query_models, _, _ = fetch_result
@@ -272,6 +285,21 @@ class SkillOpportunityModel(base_models.BaseModel):
             (cursor.urlsafe().decode('utf-8') if cursor else None),
             more_results,
         )
+
+    @classmethod
+    def get_by_topic(
+        cls, topic_id: str
+    ) -> Sequence[SkillOpportunityModel]:
+        """Returns all the models corresponding to the specific topic.
+
+        Args:
+            topic_id: str. The topic ID to filter by.
+
+        Returns:
+            list(SkillOpportunityModel). A list of
+            SkillOpportunityModel having given topic_id.
+        """
+        return cls.query(cls.topic_id == topic_id).fetch()
 
 
 class TranslationOpportunityModel(base_models.BaseModel):

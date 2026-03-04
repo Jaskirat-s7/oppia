@@ -45,7 +45,7 @@ export const ContributorDashboardConstants = {
       description:
         'Submit a question for students to answer while ' +
         'practicing that skill.',
-      customizationOptions: ['sort'],
+      customizationOptions: ['topic', 'sort'],
       enabled: false,
     },
     translateTextTab: {

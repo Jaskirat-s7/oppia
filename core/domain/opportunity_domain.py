@@ -21,7 +21,7 @@ from __future__ import annotations
 from core import feconf, utils
 from core.constants import constants
 
-from typing import Dict, List, TypedDict
+from typing import Dict, List, Optional, TypedDict
 
 
 class PartialExplorationOpportunitySummaryDict(TypedDict):
@@ -72,6 +72,7 @@ class SkillOpportunityDict(TypedDict):
     id: str
     skill_description: str
     question_count: int
+    topic_id: Optional[str]
 
 
 class ExplorationOpportunitySummary:
@@ -291,7 +292,11 @@ class SkillOpportunity:
     """The domain object for skill opportunities."""
 
     def __init__(
-        self, skill_id: str, skill_description: str, question_count: int
+        self,
+        skill_id: str,
+        skill_description: str,
+        question_count: int,
+        topic_id: Optional[str] = None,
     ) -> None:
         """Constructs a SkillOpportunity domain object.
 
@@ -299,10 +304,12 @@ class SkillOpportunity:
             skill_id: str. The unique id of the skill.
             skill_description: str. The title of the skill.
             question_count: int. The total number of questions for the skill.
+            topic_id: str or None. The id of the topic this skill belongs to.
         """
         self.id = skill_id
         self.skill_description = skill_description
         self.question_count = question_count
+        self.topic_id = topic_id
         self.validate()
 
     def validate(self) -> None:
@@ -335,6 +342,7 @@ class SkillOpportunity:
             skill_opportunity_dict['id'],
             skill_opportunity_dict['skill_description'],
             skill_opportunity_dict['question_count'],
+            skill_opportunity_dict.get('topic_id'),
         )
 
     def to_dict(self) -> SkillOpportunityDict:
@@ -349,6 +357,7 @@ class SkillOpportunity:
             'id': self.id,
             'skill_description': self.skill_description,
             'question_count': self.question_count,
+            'topic_id': self.topic_id,
         }
 
 

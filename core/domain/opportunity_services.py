@@ -30,6 +30,7 @@ from core.domain import (
     feature_flag_services,
     opportunity_domain,
     question_fetchers,
+    question_services,
     story_domain,
     story_fetchers,
     suggestion_services,
@@ -822,24 +823,27 @@ def get_skill_opportunity_from_model(
         SkillOpportunity. The corresponding SkillOpportunity object.
     """
     return opportunity_domain.SkillOpportunity(
-        model.id, model.skill_description, model.question_count
+        model.id, model.skill_description, model.question_count, model.topic_id
     )
 
 
 def get_skill_opportunities(
-    cursor: Optional[str],
+    cursor: str, topic_id: Optional[str] = None
 ) -> Tuple[List[opportunity_domain.SkillOpportunity], Optional[str], bool]:
-    """Returns a list of skill opportunities available for questions.
+    """Returns a list of skill opportunities available for adding questions.
 
     Args:
         cursor: str or None. If provided, the list of returned entities
             starts from this datastore cursor. Otherwise, the returned
             entities start from the beginning of the full list of entities.
+        topic_id: str or None. The topic ID for which skill opportunities
+            should be fetched. If topic_id is None, fetch skill opportunities
+            from all topics.
 
     Returns:
-        3-tuple(opportunities, cursor, more). where:
-            opportunities: list(SkillOpportunity). A list of SkillOpportunity
-                domain objects.
+        3-tuple of (opportunities, cursor, more). where:
+            opportunities: list(SkillOpportunity). A list
+                of SkillOpportunity domain objects.
             cursor: str or None. A query cursor pointing to the next
                 batch of results. If there are no more results, this might
                 be None.
@@ -847,18 +851,18 @@ def get_skill_opportunities(
                 this batch. If False, there are no further results after
                 this batch.
     """
-    skill_opportunity_models, cursor, more = (
+    models, next_cursor, more = (
         opportunity_models.SkillOpportunityModel.get_skill_opportunities(
-            constants.OPPORTUNITIES_PAGE_SIZE, cursor
+            constants.OPPORTUNITIES_PAGE_SIZE, cursor, topic_id
         )
     )
     opportunities = []
-    for skill_opportunity_model in skill_opportunity_models:
+    for skill_opportunity_model in models:
         skill_opportunity = get_skill_opportunity_from_model(
             skill_opportunity_model
         )
         opportunities.append(skill_opportunity)
-    return opportunities, cursor, more
+    return opportunities, next_cursor, more
 
 
 def get_skill_opportunities_by_ids(
@@ -890,35 +894,32 @@ def get_skill_opportunities_by_ids(
     return opportunities
 
 
-def create_skill_opportunity(skill_id: str, skill_description: str) -> None:
-    """Creates a SkillOpportunityModel entity in the datastore.
+def create_skill_opportunity(
+    skill_id: str, skill_description: str, topic_id: Optional[str] = None
+) -> None:
+    """Creates a skill opportunity for the given skill.
 
     Args:
-        skill_id: str. The skill_id of the opportunity.
-        skill_description: str. The skill_description of the opportunity.
+        skill_id: str. The id of the skill.
+        skill_description: str. The description of the skill.
+        topic_id: str or None. The id of the topic this skill belongs to.
 
     Raises:
-        Exception. If a SkillOpportunityModel corresponding to the supplied
-            skill_id already exists.
+        Exception. The skill opportunity already exists.
     """
-    skill_opportunity_model = (
-        opportunity_models.SkillOpportunityModel.get_by_id(skill_id)
-    )
-    if skill_opportunity_model is not None:
+    skill_opportunity = _get_skill_opportunity(skill_id)
+    if skill_opportunity is not None:
         raise Exception(
             'SkillOpportunity corresponding to skill ID %s already exists.'
-            % (skill_id)
+            % skill_id
         )
 
-    questions, _ = (
-        question_fetchers.get_questions_and_skill_descriptions_by_skill_ids(
-            constants.MAX_QUESTIONS_PER_SKILL, [skill_id], 0
-        )
+    question_count = question_services.get_total_question_count_for_skill_ids(
+        [skill_id]
     )
+
     skill_opportunity = opportunity_domain.SkillOpportunity(
-        skill_id=skill_id,
-        skill_description=skill_description,
-        question_count=len(questions),
+        skill_id, skill_description, question_count, topic_id
     )
     _save_skill_opportunities([skill_opportunity])
 
@@ -940,12 +941,52 @@ def _save_skill_opportunities(
             id=skill_opportunity.id,
             skill_description=skill_opportunity.skill_description,
             question_count=skill_opportunity.question_count,
+            topic_id=skill_opportunity.topic_id,
         )
         skill_opportunity_models.append(model)
     opportunity_models.SkillOpportunityModel.update_timestamps_multi(
         skill_opportunity_models
     )
     opportunity_models.SkillOpportunityModel.put_multi(skill_opportunity_models)
+
+
+def update_skill_opportunity_topic_id(
+    skill_id: str, topic_id: Optional[str]
+) -> None:
+    """Updates the topic ID of the given skill opportunity.
+
+    Args:
+        skill_id: str. The id of the skill opportunity to update.
+        topic_id: str or None. The new topic ID.
+    """
+    skill_opportunity = _get_skill_opportunity(skill_id)
+    if skill_opportunity is None:
+        # It's possible the opportunity hasn't been created yet.
+        return
+
+    skill_opportunity.topic_id = topic_id
+    _save_skill_opportunities([skill_opportunity])
+
+
+def clear_skill_opportunity_topic_id_for_topic(topic_id: str) -> None:
+    """Clears the topic ID of all skill opportunities associated with the given
+    topic ID.
+
+    Args:
+        topic_id: str. The topic ID to filter by.
+    """
+    skill_opportunity_models = (
+        opportunity_models.SkillOpportunityModel.get_by_topic(topic_id)
+    )
+    skill_opportunities = [
+        get_skill_opportunity_from_model(model)
+        for model in skill_opportunity_models
+    ]
+
+    for skill_opportunity in skill_opportunities:
+        skill_opportunity.topic_id = None
+
+    _save_skill_opportunities(skill_opportunities)
 
 
 def update_skill_opportunity_skill_description(
